@@ -308,6 +308,27 @@ public class RegionImpl extends org.sikuli.script.Region implements Action {
         return null;
     }
 
+    /**
+     * {@link Region#waitOnVanish(String, int)}
+     */
+    public RegionImpl waitOnVanish(String imageName, int seconds) {
+        RegionImpl baseRegion = findBaseRegion();
+        boolean match;
+        ImageLibObject imageObj = loadImage(imageName);
+
+        try {                   //TODO RH waitVanish function from sikuliX library
+            match = baseRegion.waitVanish(imageObj.getPattern(), seconds);
+            if (match) {
+                return toRegion(find(imageObj.getPattern()));
+                //TODO RH after return, start with callback
+            }
+        } catch (Exception e) {
+            loader.getExceptionHandler().handleException(e, resumeOnException);
+        }
+
+        loader.getExceptionHandler().handleException("Can't find \"" + imageObj + "' in" + baseRegion + " waitOnVanish function in " + seconds + " sec.", baseRegion, resumeOnException);
+        return null;
+    }
 
     /********************
      * KEYBOARD FUNCTIONS
