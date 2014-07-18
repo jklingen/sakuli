@@ -1,0 +1,246 @@
+Index: core/src/main/_include/sakuli_Region.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- core/src/main/_include/sakuli_Region.js	(revision Local version)
++++ core/src/main/_include/sakuli_Region.js	(revision Shelved version)
+@@ -180,8 +180,14 @@
+      * or null if the target can't be found in the given time.
+      */
+         //TODO RH JS part of function
+-    that.waitOnVanish = function (imageName, seconds) {
+-        return update(that.javaObject.waitOnVanish(imageName, seconds));
++    that.waitOnVanish = function (imageName, seconds, callback) {
++        var listener = new de.consol.sakuli.actions.screenbased.WaitOnVanishListener(
++            function (result) {
++                callback(result.getState(), result.getRegion());
++            }
++        );
++        that.javaObject.waitOnVanishAsync(imageName, seconds, listener);
++        return that;
+     };
+ 
+     /**
+Index: core/src/main/java/de/consol/sakuli/actions/screenbased/WaitOnVanishPollHandler.java
+===================================================================
+--- core/src/main/java/de/consol/sakuli/actions/screenbased/WaitOnVanishPollHandler.java	(revision Shelved version)
++++ core/src/main/java/de/consol/sakuli/actions/screenbased/WaitOnVanishPollHandler.java	(revision Shelved version)
+@@ -0,0 +1,42 @@
++/*
++ * Sakuli - Testing and Monitoring-Tool for Websites and common UIs.
++ *
++ * Copyright 2013 - 2014 the original author or authors.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package de.consol.sakuli.actions.screenbased;
++
++import java.util.Collections;
++import java.util.Map;
++import java.util.WeakHashMap;
++
++/**
++ * @author tschneck
++ *         Date: 09.07.14
++ */
++public class WaitOnVanishPollHandler implements WaitOnVanishListener {
++
++    private Map<Long, Result> waitOnVanishThreads = Collections.synchronizedMap(new WeakHashMap<Long, Result>());
++
++
++    @Override
++    public void resultReceived(Result result) {
++        waitOnVanishThreads.put(Thread.currentThread().getId(), result);
++    }
++
++    public Result checkResult(long threadId) {
++        return waitOnVanishThreads.containsKey(threadId) ? waitOnVanishThreads.remove(threadId) : null;
++    }
++}
+Index: core/src/main/java/de/consol/sakuli/actions/screenbased/RegionImpl.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- core/src/main/java/de/consol/sakuli/actions/screenbased/RegionImpl.java	(revision Local version)
++++ core/src/main/java/de/consol/sakuli/actions/screenbased/RegionImpl.java	(revision Shelved version)
+@@ -41,6 +41,7 @@
+     private final boolean resumeOnException;
+     private final ImageLibObject imagePattern;
+     private ScreenActionLoader loader;
++    private WaitOnVanishPollHandler waitOnVanishPollHandler = new WaitOnVanishPollHandler();
+ 
+     /**
+      * Creates a new Region from the hole Screen
+@@ -318,10 +319,12 @@
+ 
+         try {                   //TODO RH waitVanish function from sikuliX library
+             match = baseRegion.waitVanish(imageObj.getPattern(), seconds);
++
+             if (match) {
+                 return toRegion(find(imageObj.getPattern()));
+                 //TODO RH after return, start with callback
+             }
++            return null;
+         } catch (Exception e) {
+             loader.getExceptionHandler().handleException(e, resumeOnException);
+         }
+@@ -330,6 +333,53 @@
+         return null;
+     }
+ 
++    public long waitOnVanishAsyncPolling(String imageName, int seconds) {
++        Thread thread = new Thread(
++                new WaitOnVanishRunnable(waitOnVanishPollHandler, imageName, seconds));
++        thread.start();
++        return thread.getId();
++    }
++
++    public void waitOnVanishAsync(String imageName, int seconds, WaitOnVanishListener listener) {
++        Thread thread = new Thread(
++                new WaitOnVanishRunnable(listener, imageName, seconds));
++        thread.start();
++    }
++
++    public WaitOnVanishListener.Result pollWaitOnVanishResult(long threadId) {
++        return waitOnVanishPollHandler.checkResult(threadId);
++    }
++
++
++    private class WaitOnVanishRunnable implements Runnable {
++
++        private final WaitOnVanishListener listener;
++        private String imageName;
++        private int seconds;
++
++        private WaitOnVanishRunnable(WaitOnVanishListener listener, String imageName, int seconds) {
++            this.imageName = imageName;
++            this.seconds = seconds;
++            this.listener = listener;
++        }
++
++        @Override
++        public void run() {
++            WaitOnVanishListener.Result result;
++            RegionImpl foundRegion = waitOnVanish(imageName, seconds);
++            if (foundRegion != null) {
++                result = new WaitOnVanishListener.Result(
++                        WaitOnVanishListener.State.OK, foundRegion);
++                //TODO RH after return, start with callback
++            } else {
++                result = new WaitOnVanishListener.Result(WaitOnVanishListener.State.TIMEOUT, null);
++            }
++            listener.resultReceived(result);
++        }
++    }
++
++
++
+     /********************
+      * KEYBOARD FUNCTIONS
+      *******************/
+@@ -464,4 +514,6 @@
+     public RegionImpl getActionRegion() {
+         return this;
+     }
++
++
+ }
+Index: core/_dev_test_suites/example_ubuntu/wait_on_vanish_ubuntu/_tc.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- core/_dev_test_suites/example_ubuntu/wait_on_vanish_ubuntu/_tc.js	(revision Local version)
++++ core/_dev_test_suites/example_ubuntu/wait_on_vanish_ubuntu/_tc.js	(revision Shelved version)
+@@ -37,13 +37,13 @@
+ 
+     regionCalc.waitOnVanish("calculate", 3);
+ //    // TODO RH here should be defined a callback:
+-//    regionCalc.waitOnVanish("calculate", 3, function(){
+-//        //callback action
+-//        var appEditor = new Application("gedit").open();
+-//        appEditor.type("TEST");
+-//        appEditor.close();
+-//
+-//    });
++    regionCalc.waitOnVanish("calculate", 3, function () {
++        //callback action
++        var appEditor = new Application("gedit").open();
++        appEditor.type("TEST");
++        appEditor.close();
++
++    });
+ 
+     appCalc.closeApp();
+ } catch (e) {
+Index: core/src/main/java/de/consol/sakuli/actions/screenbased/WaitOnVanishListener.java
+===================================================================
+--- core/src/main/java/de/consol/sakuli/actions/screenbased/WaitOnVanishListener.java	(revision Shelved version)
++++ core/src/main/java/de/consol/sakuli/actions/screenbased/WaitOnVanishListener.java	(revision Shelved version)
+@@ -0,0 +1,53 @@
++/*
++ * Sakuli - Testing and Monitoring-Tool for Websites and common UIs.
++ *
++ * Copyright 2013 - 2014 the original author or authors.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package de.consol.sakuli.actions.screenbased;
++
++/**
++ * @author tschneck
++ *         Date: 09.07.14
++ */
++public interface WaitOnVanishListener {
++
++    void resultReceived(Result result);
++
++
++    public static class Result {
++        State state;
++        RegionImpl region;
++
++        public Result(State state, RegionImpl region) {
++            this.state = state;
++            this.region = region;
++        }
++
++        public State getState() {
++            return state;
++        }
++
++        public RegionImpl getRegion() {
++            return region;
++        }
++    }
++
++    enum State {
++        OK,
++        TIMEOUT
++    }
++
++}
