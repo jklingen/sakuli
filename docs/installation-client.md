@@ -67,13 +67,15 @@ Additionally, on **Windows**:
     
       `export SAKULI_HOME=__INST_DIR__/sakuli-vX.X.X/`
       
-* Additionally, on **Linux** you have to install tesseract manually: 
+* Additionally, on **Linux** you have to install `tesseract` (and maybe `wmctrl`) manually: 
 
         # Ubuntu
         sudo apt-get install tesseract-ocr
+        sudo apt-get install wmctrl
         # openSUSE
         sudo zypper install tesseract
-
+        sudo zypper install wmctrl
+        
 ### Sahi
 
 * Download **Sahi** from [http://sourceforge.net/projects/sahi/files/?source=navbar](http://sourceforge.net/projects/sahi/files/)
@@ -104,6 +106,8 @@ All components below are optional but recommended:
 #### PhantomJS
 	
 Currently, *each* Sakuli test requires to start a browser, which is not very handy for pure Sikuli GUI tests (=where no browser at all is needed). For that case, use a headless browser like [PhantomJS](http://phantomjs.org). Refer to [Browser configuration](./additional-settings.md#browser-configuration) for more information. 
+
+Attention: PhantomJS 2 is currently unsupported. Use version 1.9.x
 
 
 #### Screenshot tool 

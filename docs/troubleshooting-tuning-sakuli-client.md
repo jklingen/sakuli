@@ -108,7 +108,17 @@ Error reporting is enabled by default - you should turn off this service because
 * Change Action Center settings -> Problem reporting settings
 * Set "Never check for solutions"  
 
+If you still get messages for crashed applications, try to:
 
+* "regedit"
+* [ HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\Windows Error Reporting ]
+* "DontShowUI" (DWORD) => "1"
+
+#### Using task scheduler
+
+To execute your testcase regularly you can add new tasks to the windows task scheduler. As action, use this command to put the cmd window into the background to not disturb your tests:
+
+    cmd.exe /c start /min C:\sakuli\sakuli-v0.X.0\bin\sakuli.bat --run "C:\sakuli\example_test_suites\example_windows" ^& exit
 
 ## Troubleshooting
 
@@ -145,3 +155,14 @@ Sikuli keyboard events (`type()`and `paste()`) on a Sahi-controlled browser inst
 For this reason, Sikuli type/paste methods first extend the Sahi status interval to the value of `sahi.proxy.onSikuliInput.delayPerKey` (in ms) which is long enough to execute _one_ keyboard action. For the method `type` (which is "press/release character by character""), a multiple if this value is chosen. Before leaving the paste/type method, the interval gets reset by Sakuli to the default Sahi status interval.
 
 This setting is not needed if Sikuli does keyboard actions on GUIs not controlled by Sahi.
+
+### `Application("...").getRegion()` returns `NULL` or an `NullPointerException`
+On **Ubuntu** or other **Linux** based OS check if the packe `wmctrl` is installed. If not install it via:
+	
+	sudo apt-get install wmctrl
+	
+### GUI test only
+ 
+ To start GUI test only you can use the sahi default domain as start URL 
+ `http://sahi.example.com/_s_/dyn/Driver_initialized` in the file `testsuite.suites`
+ and as browser phantomJS.
