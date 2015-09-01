@@ -24,22 +24,23 @@ var appCalc;
 var appGedit;
 
 try {
-    appCalc = getCalcApp().open();
-    screen.waitForImage("calculator.png", 20);
+    appCalc = getCalcApp();
+    var appRegion = appCalc.open().getRegion().highlight();
+    appRegion.waitForImage("calculator.png", 20);
 
     env.type("525");
     env.sleep(2);
     env.setSimilarity(0.99);
-    screen.find("plus.png").click().type("100");
+    appRegion.find("plus.png").click().type("100");
     env.resetSimilarity();
-    screen.find("result.png").click();
-    screen.waitForImage("625", 10);
-    screen.find("edit").click();
-    screen.find("copy").click();
+    appRegion.find("result.png").click();
+    appRegion.waitForImage("625", 10);
+    appRegion.find("edit").click();
+    appRegion.find("copy").click();
     testCase.endOfStep("Calculation", 30);
 
     appGedit = getEditorApp().open();
-    screen.waitForImage("editor_header.png", 20);
+    appGedit.getRegion().waitForImage("editor_header.png", 20);
     env.type("Now paste Result into the editor\n");
     env.pasteClipboard();
     screen.exists("editor_result");
