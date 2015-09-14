@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Sakuli - Testing and Monitoring-Tool for Websites and common UIs.
+  ~
+  ~ Copyright 2013 - 2015 the original author or authors.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.sakuli</groupId>
+        <artifactId>root</artifactId>
+        <version>0.6.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>integration-javascript-test</artifactId>
+    <version>0.6.0-SNAPSHOT</version>
+    <name>integration-javascript-test</name>
+    <description>integration test module for sakuli in javascript</description>
+
+    <packaging>jar</packaging>
+    <properties>
+        <sakuli.home>${project.parent.basedir}</sakuli.home>
+        <test.included.groups>${test.group.integration}</test.included.groups>
+        <test.excluded.groups>${test.group.unit},${test.group.ui},${test.group.sakuliDSL}</test.excluded.groups>
+
+        <sakuli.version>${pom.version}</sakuli.version>
+        <sakuli.install.phase>generate-resources</sakuli.install.phase>
+        <sakuli.inst.folder>${project.basedir}/sakuli_inst</sakuli.inst.folder>
+        <sakuli.home>${sakuli.inst.folder}/sakuli/sakuli-v${sakuli.version}</sakuli.home>
+        <sakuli.download.url>http://labs.consol.de/sakuli/install</sakuli.download.url>
+        <sahi.jar.name>install_sahi_v50_20141105.jar</sahi.jar.name>
+        <firefox.inst.name>FirefoxPortable-v37-windows</firefox.inst.name>
+    </properties>
+
+    <profiles>
+        <profile>
+            <id>javascript-install</id>
+            <build>
+                <plugins>
+                    <!-- delete old sakuli installatin -->
+                    <plugin>
+                        <artifactId>maven-clean-plugin</artifactId>
+                        <configuration>
+                            <filesets>
+                                <fileset>
+                                    <directory>${sakuli.inst.folder}</directory>
+                                    <followSymlinks>false</followSymlinks>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>copy-resources</id>
+                                <goals>
+                                    <goal>resources</goal>
+                                </goals>
+                                <phase>${sakuli.install.phase}</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- extract sakuli install current build -->
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <executions>
+                            <!--<execution>-->
+                            <!--<id>install-sakuli</id>-->
+                            <!--<phase>${sakuli.install.phase}</phase>-->
+                            <!--<goals>-->
+                            <!--<goal>wget</goal>-->
+                            <!--</goals>-->
+                            <!--<configuration>-->
+                            <!--<url>${sakuli.download.url}/sakuli-v${sakuli.version}.zip-->
+                            <!--</url>-->
+                            <!--<skipCache>true</skipCache>-->
+                            <!--<unpack>true</unpack>-->
+                            <!--<outputDirectory>${sakuli.inst.folder}</outputDirectory>-->
+                            <!--</configuration>-->
+                            <!--</execution>-->
+                            <execution>
+                                <id>download-sahi</id>
+                                <phase>${sakuli.install.phase}</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>${sakuli.download.url}/3rd-party/${sahi.jar.name}</url>
+                                    <skipCache>true</skipCache>
+                                    <unpack>false</unpack>
+                                    <outputDirectory>${build.outputDirectory}</outputDirectory>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>download-firefox-portable</id>
+                                <phase>${sakuli.install.phase}</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>${sakuli.download.url}/3rd-party/${firefox.inst.name}.zip</url>
+                                    <skipCache>true</skipCache>
+                                    <unpack>true</unpack>
+                                    <outputDirectory>${sakuli.inst.folder}/firefox</outputDirectory>
+                                </configuration>
+                            </execution>
+
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>install-sahi</id>
+                                <phase>${sakuli.install.phase}</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>java</executable>
+                                    <!-- optional -->
+                                    <workingDirectory>${sakuli.inst.folder}</workingDirectory>
+                                    <arguments>
+                                        <argument>-jar</argument>
+                                        <argument>${build.outputDirectory}/${sahi.jar.name}</argument>
+                                        <argument>${build.outputDirectory}/sahi-install-config.xml</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+    <build>
+        <plugins>
+
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <!-- delete all sakuli logs in testsuite folder-->
+                        <id>delete-sakuli-logs</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <filesets>
+                                <fileset>
+                                    <directory>test-suites</directory>
+                                    <followSymlinks>false</followSymlinks>
+                                    <includes>
+                                        <include>**/_logs/</include>
+                                    </includes>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <!-- delete old firefox cache -->
+                        <id>remove-firfox-usage-data-container</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <filesets>
+                                <fileset>
+                                    <directory>${sakuli.inst.folder}/firefox/${firefox.inst.name}/Data</directory>
+                                    <followSymlinks>false</followSymlinks>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <!-- delete plugin-conatainer.exe to prevent crash report at the ending -->
+                        <id>remove-firefox-plugin-container.exe</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <filesets>
+                                <fileset>
+                                    <directory>${sakuli.inst.folder}/firefox/${firefox.inst.name}/App/Firefox
+                                    </directory>
+                                    <followSymlinks>false</followSymlinks>
+                                    <includes>
+                                        <include>plugin-container.exe</include>
+                                    </includes>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+                </executions>
+
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <!-- copy sahi browser settings and certificates to sahi installation folder -->
+                        <id>copy-sahi-resources</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${sakuli.inst.folder}/sahi/userdata</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources/sahi/userdata</directory>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <!-- copy default firefox profile to firefox installation -->
+                        <id>copy-firefox-resources</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${sakuli.inst.folder}/firefox/${firefox.inst.name}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources/firefox</directory>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>unpack</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.sakuli</groupId>
+                                    <artifactId>common</artifactId>
+                                    <version>${sakuli.version}</version>
+                                    <type>jar</type>
+                                    <overWrite>true</overWrite>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${build.outputDirectory}</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Execute the testsuite -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>start-testsuite</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>${sakuli.home}/bin/sakuli.bat</executable>
+                            <environmentVariables>
+                                <SAKULI_HOME>${sakuli.home}</SAKULI_HOME>
+                            </environmentVariables>
+                            <arguments>
+                                <argument>-run</argument>
+                                <argument>test-suites/mnet-website-test-suite</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>com.googlecode.maven-download-plugin</groupId>
+                    <artifactId>download-maven-plugin</artifactId>
+                    <version>1.2.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>2.6.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>2.7</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>1.4.0</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>core</artifactId>
+            <version>${project.parent.version}</version>
+            <type>jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>common</artifactId>
+            <version>${project.parent.version}</version>
+            <type>jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <!--&lt;!&ndash; JAVA FX - unfortunately only over this way possible yet &ndash;&gt;-->
+        <!--<dependency>-->
+        <!--<groupId>javafx</groupId>-->
+        <!--<artifactId>jfxrt</artifactId>-->
+        <!--<version>${java.version}</version>-->
+        <!--<systemPath>${java.home}/lib/ext/jfxrt.jar</systemPath>-->
+        <!--<scope>system</scope>-->
+        <!--</dependency>-->
+    </dependencies>
+</project>
